@@ -1,29 +1,44 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpException, HttpStatus, Put } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  HttpStatus,
+  Put,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipeBuilder,
+} from '@nestjs/common';
 import { TransactionsService } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
+import { LoggingInterceptor } from 'src/logging.interceptor';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('transactions')
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
   @Post()
-  async create(@Body() createTransactionDto: CreateTransactionDto):Promise<CreateTransactionDto> {
+  async create(
+    @Body() createTransactionDto: CreateTransactionDto,
+  ): Promise<CreateTransactionDto> {
     try {
-      
       return this.transactionsService.create(createTransactionDto);
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      throw error;
     }
   }
 
   @Get()
-  async findAll():Promise<CreateTransactionDto[]> {
+  @UseInterceptors(LoggingInterceptor)
+  async findAll() {
     try {
       return this.transactionsService.findAll();
-      
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      throw error;
     }
   }
 
@@ -31,19 +46,20 @@ export class TransactionsController {
   findOne(@Param('id') id: string) {
     try {
       return this.transactionsService.findOne(+id);
-      
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      throw error;
     }
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() updateTransactionDto: UpdateTransactionDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateTransactionDto: UpdateTransactionDto,
+  ) {
     try {
-      
       return this.transactionsService.update(+id, updateTransactionDto);
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      throw error;
     }
   }
 
@@ -51,9 +67,26 @@ export class TransactionsController {
   remove(@Param('id') id: string) {
     try {
       return this.transactionsService.remove(+id);
-      
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      throw error;
+    }
+  }
+
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadFile(
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({ fileType: 'image/jpeg' }).addFileTypeValidator({ fileType: 'image/png' }).addFileTypeValidator({ fileType: 'image/jpg' })
+        .addMaxSizeValidator({ maxSize: 5 * 1024 * 1024 })
+        .build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }),
+    )
+    file: Express.Multer.File,
+  ) { 
+    try {
+      return this.transactionsService.saveFile(file);
+    } catch (error) {
+      throw error;
     }
   }
 }

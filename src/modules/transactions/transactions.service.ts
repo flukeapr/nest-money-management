@@ -1,73 +1,92 @@
-import { BadRequestException, HttpException, HttpStatus, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { PrismaService } from 'src/prisma.service';
 
 @Injectable()
 export class TransactionsService {
-  constructor(private prisma:PrismaService) {}
-  async create(createTransactionDto: CreateTransactionDto):Promise<CreateTransactionDto> {
+  constructor(private prisma: PrismaService,) {}
+  async create(
+    createTransactionDto: CreateTransactionDto,
+  ): Promise<CreateTransactionDto> {
     try {
-      return this.prisma.transaction.create({data:createTransactionDto});
-      
+      return this.prisma.transaction.create({ data: createTransactionDto });
     } catch (error) {
-      throw new InternalServerErrorException(error.message);
+      throw error;
     }
   }
 
-  async findAll():Promise<CreateTransactionDto[]> {
+  async findAll(): Promise<CreateTransactionDto[]> {
     try {
       return this.prisma.transaction.findMany();
     } catch (error) {
-      throw new InternalServerErrorException(error.message);
-    }
-    
-  }
-
-  async findOne(id: number):Promise<CreateTransactionDto | null> {
-    try {
-      
-      const result = await this.prisma.transaction.findUnique({where:{id}});
-      if(!result){
-        throw new NotFoundException('Transaction not found');
-      }
-      return result
-    } catch (error) {
-      if(error instanceof NotFoundException){
-        throw error;
-      }
-      throw new InternalServerErrorException(error.message);
+      throw error;
     }
   }
 
-  async update(id: number, updateTransactionDto: UpdateTransactionDto):Promise<CreateTransactionDto> {
+  async findOne(id: number): Promise<CreateTransactionDto | null> {
     try {
-      const result = await this.findOne(id);
-      if(!result){
-        throw new NotFoundException('Transaction not found');
+      const result = await this.prisma.transaction.findUnique({
+        where: { id },
+      });
+      if (!result) {
+        throw new NotFoundException();
       }
-      return this.prisma.transaction.update({where:{id},data:updateTransactionDto});
+      return result;
     } catch (error) {
-      if(error instanceof NotFoundException){
-        throw error;
-      }
-     throw new InternalServerErrorException(error.message); 
+      throw error;
     }
   }
 
-  async remove(id: number):Promise<{message:string}> {
+  async update(
+    id: number,
+    updateTransactionDto: UpdateTransactionDto,
+  ): Promise<CreateTransactionDto> {
     try {
-      const result = await this.findOne(id);
-      if(!result){
-        throw new NotFoundException('Transaction not found');
-      }
-      await this.prisma.transaction.delete({where:{id}});
-      return {message:'Transaction deleted'}
+      await this.findOne(id);
+      return this.prisma.transaction.update({
+        where: { id },
+        data: updateTransactionDto,
+      });
     } catch (error) {
-      if(error instanceof NotFoundException){
-        throw error;
+      throw error;
+    }
+  }
+
+  async remove(id: number): Promise<{ message: string }> {
+    try {
+      await this.findOne(id);
+      await this.prisma.transaction.delete({ where: { id } });
+      return { message: 'Transaction deleted' };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async  saveFile(file: Express.Multer.File) {
+    try {
+      if(!file){
+        throw new BadRequestException('File not found')
       }
-      throw new InternalServerErrorException(error.message);
+      const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+      if (!allowedMimeTypes.includes(file.mimetype)) {
+        throw new BadRequestException('invalid file type');
+      }
+      const maxSize = 3 * 1024 * 1024;
+      if (file.size > maxSize) {
+        throw new BadRequestException('file is too large!');
+      }
+      return {message:'File uploaded',filePath:file.path}
+    } catch (error) {
+      throw error
     }
   }
 }
