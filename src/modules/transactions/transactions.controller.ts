@@ -71,18 +71,17 @@ export class TransactionsController {
       throw error;
     }
   }
-
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   uploadFile(
     @UploadedFile(
       new ParseFilePipeBuilder()
-        .addFileTypeValidator({ fileType: 'image/jpeg' }).addFileTypeValidator({ fileType: 'image/png' }).addFileTypeValidator({ fileType: 'image/jpg' })
         .addMaxSizeValidator({ maxSize: 5 * 1024 * 1024 })
         .build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }),
     )
     file: Express.Multer.File,
-  ) { 
+  ) {
+    console.log('Uploading file...', file);
     try {
       return this.transactionsService.saveFile(file);
     } catch (error) {
@@ -90,3 +89,6 @@ export class TransactionsController {
     }
   }
 }
+
+
+

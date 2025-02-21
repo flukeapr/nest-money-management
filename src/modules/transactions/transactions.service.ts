@@ -10,6 +10,7 @@ import {
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { PrismaService } from 'src/prisma.service';
+import { unlink } from 'fs/promises';
 
 @Injectable()
 export class TransactionsService {
@@ -86,6 +87,8 @@ export class TransactionsService {
       }
       return {message:'File uploaded',filePath:file.path}
     } catch (error) {
+      await unlink(file.path);
+      console.log('File removed due to error:', file.path);
       throw error
     }
   }
